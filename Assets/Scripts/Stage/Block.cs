@@ -5,25 +5,34 @@ namespace Assets.Scripts.Stage
 {
     public class Block : MonoBehaviour
     {
-        [SerializeField] private GameObject colorUnitPrefab;
-        private const int unitNumber = 5;
-        private GameObject[,] colorUnits = new GameObject[4,unitNumber];
-        [SerializeField] private float colorUnitDepth = 0.1f;
+        [SerializeField] private InkUnit inkUnitPrefab;
+        private readonly InkUnit[] inkUnits = new InkUnit[4];
+        [SerializeField] private float inkUnitDepth = 0.1f; //インクユニットの深さ
 
+        /// <summary>
+        /// ブロックの各辺上のインクユニットを生成し，2次元配列に登録する．
+        /// </summary>
         private void Start()
         {
-            InstantiateColorUnit(0);
+            InstantiateInkUnits(0,Vector2.up);
+            InstantiateInkUnits(1,Vector2.down);
+            InstantiateInkUnits(2,Vector2.right);
+            InstantiateInkUnits(3,Vector2.left);
         }
 
-        private void InstantiateColorUnit(int arrayNumber)
+        /// <summary>
+        /// ブロックの辺上に複数のインクユニットを生成する．
+        /// </summary>
+        private void InstantiateInkUnits(int arrayNumber, Vector2 edgeLocation)
         {
-            for(int i = 0; i < unitNumber; i++)
-            {
-                colorUnits[arrayNumber, i] = Instantiate(colorUnitPrefab, 
-                (Vector2)transform.position + new Vector2(-transform.localScale.x / 2f + transform.localScale.x / unitNumber * (i + 1 / 2f), 
-                transform.localScale.y / 2f - colorUnitDepth / 2f), Quaternion.identity);
-                colorUnits[arrayNumber, i].transform.localScale = new Vector2(transform.localScale.x / unitNumber, colorUnitDepth);
-            }
+                InkUnit inkUnitInstanceNew = Instantiate(inkUnitPrefab, 
+                new Vector2(transform.position.x + (transform.localScale.x / 2f + inkUnitDepth / 2f) * edgeLocation.x,
+                transform.position.y + (transform.localScale.y / 2f + inkUnitDepth / 2f) * edgeLocation.y),
+                Quaternion.identity);
+                inkUnitInstanceNew.transform.localScale
+                = new Vector2(inkUnitDepth * math.abs(edgeLocation.x) + transform.localScale.x * math.abs(edgeLocation.y),
+                inkUnitDepth * math.abs(edgeLocation.y) + transform.localScale.y * math.abs(edgeLocation.x));
+                inkUnits[arrayNumber] = inkUnitInstanceNew;
         }
     }
 }

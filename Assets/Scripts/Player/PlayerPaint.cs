@@ -5,9 +5,8 @@ namespace Assets.Scripts.Player
 {
     public class PlayerPaint : MonoBehaviour
     {
-        [SerializeField] private PaintAreaStorage paintTargetAreaStorage; //すべてのエリアを管理
+        [SerializeField] private PaintAreaStorage paintAreaStorage; //すべてのエリアを管理
         private bool isPainting = false; //塗り中かどうか
-        private Vector2 paintPosStart; //塗り領域の開始位置
         
         /// <summary>
         /// クリックしていたら塗る．
@@ -16,6 +15,8 @@ namespace Assets.Scripts.Player
         {
             if (Input.GetMouseButton(0) && !isPainting)
                 StartPaint();
+            if (Input.GetMouseButton(0) && isPainting)
+                ContinuePaint();
             if (!Input.GetMouseButton(0) && isPainting)
                 EndPaint();
         }
@@ -26,7 +27,14 @@ namespace Assets.Scripts.Player
         private void StartPaint()
         {
             isPainting = true;
-            paintPosStart = transform.position;
+            //接触するinkUnitを探す
+            InkUnitStorage.PaintInkUnit((Vector2)transform.position);
+        }
+
+        private void ContinuePaint()
+        {
+            //接触するinkUnitを探す
+            InkUnitStorage.PaintInkUnit((Vector2)transform.position);
         }
 
         /// <summary>
@@ -35,7 +43,7 @@ namespace Assets.Scripts.Player
         private void EndPaint()
         {
             isPainting = false;
-            paintTargetAreaStorage.UpdateAreas(paintPosStart, transform.position);
+            paintAreaStorage.UpdateAreas();
         }
     }   
 }

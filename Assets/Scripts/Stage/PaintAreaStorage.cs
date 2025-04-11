@@ -9,7 +9,7 @@ namespace Assets.Scripts.Stage
         [SerializeField] private int areaNumberActive = 0; //有効エリアの最大数
         private readonly List<PaintArea> areasActive = new(); //有効リスト
         private readonly List<PaintArea> areasNotActive = new(); //無効リスト
-        private readonly List<PaintArea> areasCollided = new(); //接触リスト
+        private readonly List<PaintArea> areasPainted = new(); //塗りリスト
 
         /// <summary>
         /// 有効リストと無効リストに各エリアを追加する．
@@ -32,59 +32,54 @@ namespace Assets.Scripts.Stage
             {
                 if (areasNotActive.Count == 0)
                     return;
-                areasNotActive[0].Activate();
                 areasActive.Add(areasNotActive[0]);
                 areasNotActive.RemoveAt(0);
+                areasActive[^1].Activate(); 
             }
         }
 
         /// <summary>
-        /// 各エリアと塗り領域が接触しているか確認し，それらを塗って次のエリアを有効にする．
+        /// 各塗りエリアを評価し，次のエリアを有効にする．
         /// </summary>
-        public void UpdateAreas(Vector2 paintPosStart, Vector2 paintPosEnd)
+        public void UpdateAreas()
         {
-            //有効エリアと無効エリアの総数．
-            int areaNumberRemain = areasActive.Count + areasNotActive.Count;
-            //塗り領域と接触しているすべてのエリアを接触リストに移動する．
             for (int i = areasActive.Count - 1; i >= 0; i--)
-                if (areasActive[i].IsColliding(paintPosStart, paintPosEnd))
-                    ShiftAreaToCollidedList(areasActive[i]);
-            PaintAreas(paintPosStart, paintPosEnd);
-            areasCollided.Clear();
+                if (areasActive[i].IsPainted())
+                    ShiftToPaintedList(areasActive[i]);
+            EvaluatePaintedAreas();
+            areasPainted.Clear();
             ActivateNewAreas();
-            //塗り領域がどのエリアとも接触していない場合．
-            if (areaNumberRemain == areasActive.Count + areasNotActive.Count)
-                Debug.Log("BAD");
+            InkUnitStorage.Initialize(); 
         }
 
         /// <summary>
-        /// 塗り領域と接触したエリアを有効リストから接触リストに移動させる．
+        /// エリアを有効リストから塗りリストに移動させる．
         /// </summary>
-        private void ShiftAreaToCollidedList(PaintArea area)
+        private void ShiftToPaintedList(PaintArea areaActive)
         {
-            areasCollided.Add(area);
-            areasActive.Remove(area);
+            areasPainted.Add(areaActive);
+            areasActive.Remove(areaActive);
         }
 
         /// <summary>
-        /// 接触リスト内のエリアをすべて塗る．
+        /// 塗りリスト内のエリアをすべて評価する．
         /// </summary>
-        private void PaintAreas(Vector2 paintPosStart, Vector2 paintPosEnd)
+        private void EvaluatePaintedAreas()
         {
-            if (areasCollided.Count == 0)
-                return;
-            //接触リスト内の各エリアを塗り領域の開始座標からの距離でソートする．
-            areasCollided.Sort((a, b) => 
-            a.GetDistFromStart(paintPosStart).CompareTo(b.GetDistFromStart(paintPosStart)));
-            //連鎖したエリアのうち最後以外のものを，塗り領域の開始座標を更新しながら塗る．
-            Vector2 paintPosStartCurrent = paintPosStart;
-            for (int i = 0; i < areasCollided.Count - 1; i++)
-            {
-                areasCollided[i].PaintInChain(paintPosStartCurrent, paintPosEnd);
-                paintPosStartCurrent = areasCollided[i].GetEdgePos(paintPosStartCurrent, paintPosEnd);
-            }
-            //最後のエリアを塗る．
-            areasCollided[^1].PaintOnEndOfChain(paintPosStartCurrent, paintPosEnd);
+            if(InkUnitStorage.IsPaintedOutsideOfAreas(areasPainted))
+                EvaluateError();
+            else
+                for (int i = 0; i < areasPainted.Count; i++)
+                    areasPainted[i].Evaluate();
+        }
+
+        /// <summary>
+        /// 塗りリスト内のエリアの外にある塗ユニットをすべて評価する．
+        /// </summary>
+        private void EvaluateError()
+        {
+            Debug.Log("BAD");
+            InkUnitStorage.PaintInkUnitError(areasPainted);
         }
     }
 }
